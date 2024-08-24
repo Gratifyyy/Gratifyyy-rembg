@@ -8,20 +8,14 @@ export type ModelOptions = InferenceSession.SessionOptions
 export class Model {
   protected _session?: InferenceSession
 
-  constructor(
-    protected _data: ArrayBuffer,
-    protected _options?: ModelOptions,
-  ) {
+  constructor(protected _data: ArrayBuffer, protected _options?: ModelOptions) {
     //
   }
 
   static async from(source: ModelSource): Promise<Model> {
     let data: ArrayBuffer
-    if (
-      typeof source === 'string'
-      || (SUPPORT_URL && source instanceof URL)
-    ) {
-      data = await fetch(source).then(rep => rep.arrayBuffer())
+    if (typeof source === 'string' || (SUPPORT_URL && source instanceof URL)) {
+      data = await fetch(source).then((rep) => rep.arrayBuffer())
     } else if (ArrayBuffer.isView(source)) {
       data = (source as ArrayBufferView).buffer
     } else if (source instanceof ArrayBuffer) {
@@ -38,7 +32,7 @@ export class Model {
       graphOptimizationLevel: 'all',
       executionMode: 'parallel',
       enableCpuMemArena: true,
-      ...this._options,
+      ...this._options
     })
     return this
   }
@@ -48,7 +42,10 @@ export class Model {
     return this
   }
 
-  async run(inputs: Array<any>, options?: InferenceSession.RunOptions): Promise<any> {
+  async run(
+    inputs: Array<any>,
+    options?: InferenceSession.RunOptions
+  ): Promise<any> {
     if (!this._session) {
       await this.load()
     }

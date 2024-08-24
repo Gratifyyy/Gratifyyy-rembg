@@ -18,50 +18,47 @@ export async function removeBackground(
 ): Promise<Blob> {
   const {
     debug,
-    resolution = 320,
+    resolution,
     model: modelSource = await Assets.getObjectUrl('u2netp.onnx')
   } = options
+
   debug && consoleDebug('Loading onnx runtime...')
   await Onnx.init(options)
+
   const imageTensor = await ImageTensor.from(imageSource)
-  let resized = imageTensor
+
+  // 如果未指定 resolution，则使用原始图像分辨率
+  const targetResolution = resolution || imageTensor.dims[1] // 使用原始宽度作为基准
+
+  // 如果指定了 resolution 且不同于原始尺寸，则进行调整
+  let resized =
+    targetResolution !== imageTensor.dims[1]
+      ? imageTensor.resize(targetResolution, targetResolution)
+      : imageTensor
+
   debug && consoleDebug('Loading model...')
   const model = await Model.from(modelSource)
   await model.load()
+
   debug && consoleDebug('Processing...')
   const result = await model.run([resized.toBchwImageTensor().toTensor()])
   model.release()
+
   debug && consoleDebug('Completion', result)
 
-  const stride = resolution * resolution
-  switch (options.output ?? 'foreground') {
-    case 'mask':
-      resized = new ImageTensor(new Float32Array(4 * stride), [
-        resolution,
-        resolution,
-        4
-      ])
-      for (let i = 0; i < 4 * stride; i += 4) {
-        const idx = i / 4
-        const alpha = result.data[idx]
-        resized.data[i + 3] = alpha * 255
-      }
-      break
-    case 'foreground':
-      for (let i = 0; i < 4 * stride; i += 4) {
-        const idx = i / 4
-        const alpha = result.data[idx]
-        resized.data[i + 3] = alpha * 255
-      }
-      break
-    case 'background':
-      for (let i = 0; i < 4 * stride; i += 4) {
-        const idx = i / 4
-        const alpha = result.data[idx]
-        resized.data[i + 3] = (1.0 - alpha) * 255
-      }
-      break
+  // 处理输出
+  const stride = targetResolution * targetResolution
+  for (let i = 0; i < 4 * stride; i += 4) {
+    const idx = i / 4
+    const alpha = result.data[idx]
+    resized.data[i + 3] =
+      (options.output === 'background' ? 1.0 - alpha : alpha) * 255
   }
 
-  return await resized.resize(imageTensor.dims[1], imageTensor.dims[0]).toBlob()
+  // 如果缩放了图片，需重新缩放回原尺寸
+  if (targetResolution !== imageTensor.dims[1]) {
+    resized = resized.resize(imageTensor.dims[1], imageTensor.dims[0])
+  }
+
+  return await resized.toBlob()
 }

@@ -6,7 +6,7 @@ export type ImageSource = string | URL | ImageBitmapSource | BufferSource
 export class ImageTensor {
   constructor(
     public readonly data: Float32Array,
-    public readonly dims: readonly number[],
+    public readonly dims: readonly number[]
   ) {
     //
   }
@@ -19,7 +19,7 @@ export class ImageTensor {
 
     // string to Blob
     if (SUPPORT_FETCH && typeof image === 'string') {
-      image = await fetch(image).then(rep => rep.blob())
+      image = await fetch(image).then((rep) => rep.blob())
     }
 
     // Blob to NdArray
@@ -30,11 +30,18 @@ export class ImageTensor {
 
       if (image instanceof Blob) {
         const imageBitmap = await createImageBitmap(image)
-        const canvas = new OffscreenCanvas(imageBitmap.width, imageBitmap.height)
+        const canvas = new OffscreenCanvas(
+          imageBitmap.width,
+          imageBitmap.height
+        )
         const ctx = canvas.getContext('2d') as CanvasRenderingContext2D | null
         ctx!.drawImage(imageBitmap, 0, 0)
         const imageData = ctx!.getImageData(0, 0, canvas.width, canvas.height)
-        return new ImageTensor(new Float32Array(imageData.data), [imageBitmap.height, imageBitmap.width, 4])
+        return new ImageTensor(new Float32Array(imageData.data), [
+          imageBitmap.height,
+          imageBitmap.width,
+          4
+        ])
       }
     }
 
@@ -60,28 +67,37 @@ export class ImageTensor {
           const dx = srcX - x1
           const dy = srcY - y1
 
-          const p1 = this.data[y1 * srcWidth * srcChannels + x1 * srcChannels + c]
-          const p2 = this.data[y1 * srcWidth * srcChannels + x2 * srcChannels + c]
-          const p3 = this.data[y2 * srcWidth * srcChannels + x1 * srcChannels + c]
-          const p4 = this.data[y2 * srcWidth * srcChannels + x2 * srcChannels + c]
+          const p1 =
+            this.data[y1 * srcWidth * srcChannels + x1 * srcChannels + c]
+          const p2 =
+            this.data[y1 * srcWidth * srcChannels + x2 * srcChannels + c]
+          const p3 =
+            this.data[y2 * srcWidth * srcChannels + x1 * srcChannels + c]
+          const p4 =
+            this.data[y2 * srcWidth * srcChannels + x2 * srcChannels + c]
 
-          const interpolatedValue
-            = (1 - dx) * (1 - dy) * p1
-            + dx * (1 - dy) * p2
-            + (1 - dx) * dy * p3
-            + dx * dy * p4
+          const interpolatedValue =
+            (1 - dx) * (1 - dy) * p1 +
+            dx * (1 - dy) * p2 +
+            (1 - dx) * dy * p3 +
+            dx * dy * p4
 
-          resized[y * newWidth * srcChannels + x * srcChannels + c] = Math.round(interpolatedValue)
+          resized[y * newWidth * srcChannels + x * srcChannels + c] =
+            Math.round(interpolatedValue)
         }
       }
     }
 
-    return new ImageTensor(new Float32Array(resized), [newHeight, newWidth, srcChannels])
+    return new ImageTensor(new Float32Array(resized), [
+      newHeight,
+      newWidth,
+      srcChannels
+    ])
   }
 
   toBchwImageTensor(
     mean: number[] = [128, 128, 128],
-    std: number[] = [256, 256, 256],
+    std: number[] = [256, 256, 256]
   ): ImageTensor {
     const { data, dims } = this
     const [srcHeight, srcWidth, srcChannels] = dims
@@ -96,10 +112,7 @@ export class ImageTensor {
     return new ImageTensor(float32Data, [1, 3, srcHeight, srcWidth])
   }
 
-  toBlob(
-    quality = 0.8,
-    format = 'image/png',
-  ): Blob {
+  toBlob(quality = 1.0, format = 'image/png'): Blob {
     const { data, dims } = this
     const [height, width] = dims
 
@@ -112,7 +125,7 @@ export class ImageTensor {
         const imageData = new ImageData(
           new Uint8ClampedArray(data),
           width,
-          height,
+          height
         )
         const canvas = new OffscreenCanvas(imageData.width, imageData.height)
         const ctx = canvas.getContext('2d') as CanvasRenderingContext2D | null
@@ -120,7 +133,7 @@ export class ImageTensor {
         return (canvas as any).convertToBlob({ quality, type: format })
       }
       default:
-        throw new Error(`Invalid format: ${ format }`)
+        throw new Error(`Invalid format: ${format}`)
     }
   }
 
