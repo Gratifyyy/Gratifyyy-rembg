@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Playground</title>
+</head>
+<body>
+  <script type="module" async>
+    import { removeBackground } from './src'
+
+    const imageSource = '/examples/example.jpg'
+
+    const blob = await removeBackground(imageSource, {
+      debug: true,
+      model: '/models/u2netp.onnx',
+      resolution: 320,
+      wasmPaths: {
+        'ort-wasm-simd.wasm': './node_modules/onnxruntime-web/dist/ort-wasm-simd.wasm',
+      },
+    })
+
+    const img1 = new Image()
+    img1.src = imageSource
+    img1.width = '100'
+    document.body.append(img1)
+
+    const img2 = new Image()
+    img2.src = URL.createObjectURL(blob)
+    img2.width = '100'
+    document.body.append(img2)
+  </script>
+</body>
+</html>
